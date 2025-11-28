@@ -1,0 +1,44 @@
+name: Build QMK Firmware
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: qmkfm/qmk_cli
+
+    steps:
+    - name: Checkout QMK Firmware
+      uses: actions/checkout@v3
+      with:
+        repository: qmk/qmk_firmware
+        submodules: recursive
+        path: qmk_firmware
+
+    - name: Checkout RK75 Repository
+      uses: actions/checkout@v3
+      with:
+        path: qmk_firmware/keyboards/rk/r75
+
+    - name: Build Default Keymap
+      run: |
+        cd qmk_firmware
+        qmk compile -kb rk/r75 -km default
+
+    - name: Build VIA Keymap
+      run: |
+        cd qmk_firmware
+        qmk compile -kb rk/r75 -km via
+
+    - name: Archive Firmware
+      uses: actions/upload-artifact@v3
+      with:
+        name: rk75-firmware
+        path: |
+          qmk_firmware/*.bin
+          qmk_firmware/*.hex
