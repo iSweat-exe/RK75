@@ -14,14 +14,14 @@ jobs:
 
     steps:
     - name: Checkout QMK Firmware
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: qmk/qmk_firmware
         submodules: recursive
         path: qmk_firmware
 
     - name: Checkout RK75 Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: qmk_firmware/keyboards/rk/r75
 
@@ -36,7 +36,7 @@ jobs:
         qmk compile -kb rk/r75 -km via
 
     - name: Archive Firmware
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: rk75-firmware
         path: |
