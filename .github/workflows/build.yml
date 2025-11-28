@@ -20,13 +20,16 @@ jobs:
         submodules: recursive
         path: qmk_firmware
 
-    - name: Remove existing RK75 from QMK
-      run: rm -rf qmk_firmware/keyboards/rk/r75
-
     - name: Checkout RK75 Repository
       uses: actions/checkout@v4
       with:
-        path: qmk_firmware/keyboards/rk/r75
+        path: rk75
+
+    - name: Copy RK75 into QMK
+      run: |
+        rm -rf qmk_firmware/keyboards/rk/r75
+        mkdir -p qmk_firmware/keyboards/rk/r75
+        cp -r rk75/* qmk_firmware/keyboards/rk/r75/
 
     - name: Build Default Keymap
       run: |
