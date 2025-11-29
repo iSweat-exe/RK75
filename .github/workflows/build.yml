@@ -23,44 +23,35 @@ jobs:
         keymap: [default, via]
 
     steps:
-    # 1. QMK SHALLOW CLONE (100% fresh, mais très rapide)
     - name: Checkout QMK Firmware
       uses: actions/checkout@v4
       with:
         repository: qmk/qmk_firmware
-        fetch-depth: 1
-        submodules: false
+        submodules: recursive
         path: qmk_firmware
 
-    # 2. Ton repo
     - name: Checkout RK75 Repository
       uses: actions/checkout@v4
       with:
         path: rk75
 
-    # 3. Copier ta board dans QMK
     - name: Copy RK75 into QMK
       run: |
         rm -rf qmk_firmware/keyboards/rk/r75
         mkdir -p qmk_firmware/keyboards/rk/r75
         cp -r rk75/keyboard/rk/r75/* qmk_firmware/keyboards/rk/r75/
-
-    # 4. Build (multi-thread)
     - name: Build Keymap
       run: |
         cd qmk_firmware
-        qmk compile -j $(nproc) -kb rk/r75 -km ${{ matrix.keymap }}
-
-    # 5. Artifacts
+        qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
     - name: Archive Firmware
       uses: actions/upload-artifact@v4
       with:
-        name: rk75-${{ matrix.keymap }}
+        name: rk75-${{ matrix.keymap }} 
         path: |
           qmk_firmware/*.bin
           qmk_firmware/*.hex
         if-no-files-found: error
-
 
   release:
     needs: build
