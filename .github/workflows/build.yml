@@ -46,26 +46,29 @@ jobs:
         cd qmk_firmware
         qmk compile -kb rk/r75 -km ${{ matrix.keymap }} || exit 1
 
-    - name: Rename Firmware
+    - name: Prepare Artifact
       run: |
+        # 1. On prépare le nom
         if [ "${{ matrix.keymap }}" == "default" ]; then
           TYPE="Default"
         else
           TYPE="Via"
         fi
-        
         NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
         
-        # Déplace le fichier vers la racine du workspace
-        mv qmk_firmware/rk_r75_${{ matrix.keymap }}.bin $GITHUB_WORKSPACE/$NEW_NAME
+        # 2. CRUCIAL : On crée un dossier propre pour l'export
+        mkdir -p dist
         
-        echo "✅ Firmware renommé et déplacé : $NEW_NAME"
+        # 3. On copie le fichier dedans
+        cp qmk_firmware/rk_r75_${{ matrix.keymap }}.bin dist/$NEW_NAME
+        
+        echo "✅ Fichier prêt dans : dist/$NEW_NAME"
 
     - name: Archive Firmware
       uses: actions/upload-artifact@v4
       with:
         name: rk75-${{ matrix.keymap }}
-        path: RK75_ISO_*.bin 
+        path: dist/*
         if-no-files-found: error
 
   release:
@@ -82,20 +85,18 @@ jobs:
         with:
           pattern: rk75-*
           merge-multiple: true
-          path: release_artifacts
+          path: final_firmware
 
       - name: List Files (Debug)
-        run: ls -R release_artifacts/
+        run: ls -R final_firmware/
 
       - name: Create Release with GitHub CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          # On crée la release et on lui donne TOUS les fichiers .bin d'un coup
-          # Le shell va transformer *.bin en "fichier1.bin fichier2.bin"
-          
+          # Cette fois on prend les fichiers dans le dossier final_firmware
           gh release create "$TAG" \
-            release_artifacts/*.bin \
+            final_firmware/*.bin \
             --title "Release $TAG" \
             --generate-notes
