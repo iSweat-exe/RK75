@@ -40,52 +40,26 @@ jobs:
         rm -rf qmk_firmware/keyboards/rk/r75
         mkdir -p qmk_firmware/keyboards/rk/r75
         cp -r rk75/keyboard/rk/r75/* qmk_firmware/keyboards/rk/r75/
-
     - name: Build Keymap
       run: |
         cd qmk_firmware
         qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
-
-    - name: Prepare Artifact (auto-detect firmware)
-      run: |
-        if [ "${{ matrix.keymap }}" == "default" ]; then
-          TYPE="Default"
-        else
-          TYPE="Via"
-        fi
-        
-        NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
-
-        mkdir -p dist
-
-        echo "🔍 Searching firmware for keymap: ${{ matrix.keymap }}"
-
-        BIN_FILE=$(find qmk_firmware -maxdepth 5 -type f -name "*${{ matrix.keymap }}*.bin" | head -n 1)
-
-        if [ -z "$BIN_FILE" ]; then
-          echo "❌ Firmware NOT FOUND"
-          echo "➡️ Listing all .bin files for debug:"
-          find qmk_firmware -maxdepth 6 -type f -name "*.bin"
-          exit 1
-        fi
-
-        echo "➡️ Firmware detected: $BIN_FILE"
-        cp "$BIN_FILE" "dist/$NEW_NAME"
-
-    - name: Upload Artifact
+    - name: Archive Firmware
       uses: actions/upload-artifact@v4
       with:
-        name: rk75-${{ matrix.keymap }}
-        path: dist/*
+        name: rk75-${{ matrix.keymap }} 
+        path: |
+          qmk_firmware/*.bin
+          qmk_firmware/*.hex
         if-no-files-found: error
 
   release:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-
+    
     steps:
-      - name: Download Artifacts
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: rk75-*
