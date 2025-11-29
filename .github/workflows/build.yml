@@ -46,7 +46,7 @@ jobs:
         cd qmk_firmware
         qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
 
-    - name: Prepare Artifact
+    - name: Prepare Artifact (auto-detect firmware)
       run: |
         if [ "${{ matrix.keymap }}" == "default" ]; then
           TYPE="Default"
@@ -57,7 +57,20 @@ jobs:
         NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
 
         mkdir -p dist
-        cp qmk_firmware/rk_r75_${{ matrix.keymap }}.bin dist/$NEW_NAME
+
+        echo "🔍 Searching firmware for keymap: ${{ matrix.keymap }}"
+
+        BIN_FILE=$(find qmk_firmware -maxdepth 5 -type f -name "*${{ matrix.keymap }}*.bin" | head -n 1)
+
+        if [ -z "$BIN_FILE" ]; then
+          echo "❌ Firmware NOT FOUND"
+          echo "➡️ Listing all .bin files for debug:"
+          find qmk_firmware -maxdepth 6 -type f -name "*.bin"
+          exit 1
+        fi
+
+        echo "➡️ Firmware detected: $BIN_FILE"
+        cp "$BIN_FILE" "dist/$NEW_NAME"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
@@ -72,27 +85,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: rk75-*
-          path: temp_artifacts
+          merge-multiple: true
+          path: release_artifacts
 
-      - name: Consolidate Files
-        run: |
-          mkdir final_firmware
-          find temp_artifacts -name "*.bin" -exec cp {} final_firmware/ \;
-          echo "📂 Final firmware:"
-          ls -R final_firmware/
-
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$TAG" final_firmware/*.bin \
-            --title "Release $TAG" \
-            --generate-notes
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release_artifacts/*
+          generate_release_notes: true
