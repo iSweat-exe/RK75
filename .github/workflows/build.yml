@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     container: qmkfm/qmk_cli
 
+    strategy:
+      fail-fast: false
+      matrix:
+        keymap: [default, via]
+
     steps:
     - name: Checkout QMK Firmware
       uses: actions/checkout@v4
@@ -31,20 +36,15 @@ jobs:
         mkdir -p qmk_firmware/keyboards/rk/r75
         cp -r rk75/keyboard/rk/r75/* qmk_firmware/keyboards/rk/r75/
 
-    - name: Build Default Keymap
+    - name: Build Keymap
       run: |
         cd qmk_firmware
-        qmk compile -kb rk/r75 -km default
-
-    - name: Build VIA Keymap
-      run: |
-        cd qmk_firmware
-        qmk compile -kb rk/r75 -km via
+        qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
 
     - name: Archive Firmware
       uses: actions/upload-artifact@v4
       with:
-        name: rk75-firmware
+        name: rk75-${{ matrix.keymap }}
         path: |
           qmk_firmware/*.bin
           qmk_firmware/*.hex
