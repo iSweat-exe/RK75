@@ -1,0 +1,74 @@
+name: Build QMK Firmware
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: qmkfm/qmk_cli
+
+    steps:
+    # 1. Clone QMK firmware
+    - name: Checkout QMK Firmware
+      uses: actions/checkout@v4
+      with:
+        repository: qmk/qmk_firmware
+        submodules: recursive
+        path: qmk_firmware
+
+    # 2. Clone your RK75 keyboard repo
+    - name: Checkout RK75 Repository
+      uses: actions/checkout@v4
+      with:
+        path: rk75
+
+    # 3. FULL CLEAN to avoid old r75.c being reused by QMK
+    - name: Clean QMK build + cache
+      run: |
+        rm -rf qmk_firmware/.build
+        rm -rf qmk_firmware/build
+        rm -rf qmk_firmware/.cache
+        rm -rf .build
+        rm -rf build
+        qmk config user.qmk_home=/tmp/qmk_home
+
+    # 4. Copy your keyboard into QMK
+    - name: Copy RK75 into QMK
+      run: |
+        rm -rf qmk_firmware/keyboards/rk/r75
+        mkdir -p qmk_firmware/keyboards/rk/r75
+        cp -r rk75/keyboard/rk/r75/* qmk_firmware/keyboards/rk/r75/
+
+    # 5. Debug (optional but useful)
+    - name: Debug folder structure
+      run: |
+        echo "==== Keyboard folder ===="
+        ls -R qmk_firmware/keyboards/rk/r75
+        echo "==== ROOT ===="
+        ls -R .
+
+    # 6. Build default keymap
+    - name: Build Default Keymap
+      run: |
+        cd qmk_firmware
+        qmk compile -kb rk/r75 -km default
+
+    # 7. Build VIA keymap
+    - name: Build VIA Keymap
+      run: |
+        cd qmk_firmware
+        qmk compile -kb rk/r75 -km via
+
+    # 8. Upload artifacts
+    - name: Archive Firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: rk75-firmware
+        path: |
+          qmk_firmware/*.bin
+          qmk_firmware/*.hex
