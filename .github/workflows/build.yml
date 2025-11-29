@@ -56,8 +56,8 @@ jobs:
         
         NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
         
-        # On déplace le fichier hors du dossier qmk_firmware, directement à la racine
-        mv qmk_firmware/rk_r75_${{ matrix.keymap }}.bin $NEW_NAME
+        # Déplace le fichier vers la racine du workspace pour simplifier l'upload
+        mv qmk_firmware/rk_r75_${{ matrix.keymap }}.bin $GITHUB_WORKSPACE/$NEW_NAME
         
         echo "✅ Firmware renommé et déplacé : $NEW_NAME"
 
@@ -81,8 +81,12 @@ jobs:
           merge-multiple: true
           path: release_artifacts
 
+      - name: List Files
+        run: ls -R release_artifacts/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release_artifacts/*
+          files: |
+            release_artifacts/*.bin
           generate_release_notes: true
