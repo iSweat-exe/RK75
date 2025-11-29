@@ -44,15 +44,34 @@ jobs:
     - name: Build Keymap
       run: |
         cd qmk_firmware
-        qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
+        qmk compile -kb rk/r75 -km ${{ matrix.keymap }} || exit 1
+
+    # --- NOUVELLE ÉTAPE DE RENOMMAGE ---
+    - name: Rename Firmware
+      run: |
+        # 1. On définit le Type avec une majuscule pour faire joli (Default / Via)
+        if [ "${{ matrix.keymap }}" == "default" ]; then
+          TYPE="Default"
+        else
+          TYPE="Via"
+        fi
+        
+        # 2. On construit le nom exact demandé
+        # ${{ github.ref_name }} sera remplacé par le tag (ex: v1.0.2)
+        NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
+        
+        # 3. On renomme le fichier généré par QMK
+        # QMK sort toujours : nomClavier_nomKeymap.bin
+        mv qmk_firmware/rk_r75_${{ matrix.keymap }}.bin qmk_firmware/$NEW_NAME
+        
+        echo "✅ Firmware renommé en : $NEW_NAME"
 
     - name: Archive Firmware
       uses: actions/upload-artifact@v4
       with:
         name: rk75-${{ matrix.keymap }} 
         path: |
-          qmk_firmware/*.bin
-          qmk_firmware/*.hex
+          qmk_firmware/RK75_ISO_*.bin
         if-no-files-found: error
 
   release:
