@@ -56,7 +56,7 @@ jobs:
         
         NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
         
-        # Déplace le fichier vers la racine du workspace pour simplifier l'upload
+        # Déplace le fichier vers la racine du workspace
         mv qmk_firmware/rk_r75_${{ matrix.keymap }}.bin $GITHUB_WORKSPACE/$NEW_NAME
         
         echo "✅ Firmware renommé et déplacé : $NEW_NAME"
@@ -81,12 +81,13 @@ jobs:
           merge-multiple: true
           path: release_artifacts
 
-      - name: List Files
+      - name: List Files (Debug)
         run: ls -R release_artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          files: |
-            release_artifacts/*.bin
-          generate_release_notes: true
+          artifacts: "release_artifacts/*.bin"
+          generateReleaseNotes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
