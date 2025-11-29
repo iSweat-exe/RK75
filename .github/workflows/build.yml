@@ -48,7 +48,6 @@ jobs:
 
     - name: Prepare Artifact
       run: |
-        # 1. On prépare le nom
         if [ "${{ matrix.keymap }}" == "default" ]; then
           TYPE="Default"
         else
@@ -56,10 +55,7 @@ jobs:
         fi
         NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
         
-        # 2. CRUCIAL : On crée un dossier propre pour l'export
         mkdir -p dist
-        
-        # 3. On copie le fichier dedans
         cp qmk_firmware/rk_r75_${{ matrix.keymap }}.bin dist/$NEW_NAME
         
         echo "✅ Fichier prêt dans : dist/$NEW_NAME"
@@ -80,22 +76,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download All Artifacts
+      - name: Download All Artifacts Separately
         uses: actions/download-artifact@v4
         with:
           pattern: rk75-*
-          merge-multiple: true
-          path: final_firmware
+          path: temp_artifacts
 
-      - name: List Files (Debug)
-        run: ls -R final_firmware/
+      - name: Consolidate Files
+        run: |
+          mkdir final_firmware
+          
+          find temp_artifacts -name "*.bin" -exec cp {} final_firmware/ \;
+          
+          echo "📂 Contenu final (Preuve) :"
+          ls -R final_firmware/
 
       - name: Create Release with GitHub CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          # Cette fois on prend les fichiers dans le dossier final_firmware
           gh release create "$TAG" \
             final_firmware/*.bin \
             --title "Release $TAG" \
