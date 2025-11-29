@@ -44,7 +44,7 @@ jobs:
     - name: Build Keymap
       run: |
         cd qmk_firmware
-        qmk compile -kb rk/r75 -km ${{ matrix.keymap }} || exit 1
+        qmk compile -kb rk/r75 -km ${{ matrix.keymap }}
 
     - name: Prepare Artifact
       run: |
@@ -53,14 +53,13 @@ jobs:
         else
           TYPE="Via"
         fi
-        NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
         
+        NEW_NAME="RK75_ISO_${{ github.ref_name }}_${TYPE}.bin"
+
         mkdir -p dist
         cp qmk_firmware/rk_r75_${{ matrix.keymap }}.bin dist/$NEW_NAME
-        
-        echo "✅ Fichier prêt dans : dist/$NEW_NAME"
 
-    - name: Archive Firmware
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: rk75-${{ matrix.keymap }}
@@ -71,12 +70,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download All Artifacts Separately
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: rk75-*
@@ -85,18 +84,15 @@ jobs:
       - name: Consolidate Files
         run: |
           mkdir final_firmware
-          
           find temp_artifacts -name "*.bin" -exec cp {} final_firmware/ \;
-          
-          echo "📂 Contenu final (Preuve) :"
+          echo "📂 Final firmware:"
           ls -R final_firmware/
 
-      - name: Create Release with GitHub CLI
+      - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" \
-            final_firmware/*.bin \
+          gh release create "$TAG" final_firmware/*.bin \
             --title "Release $TAG" \
             --generate-notes
